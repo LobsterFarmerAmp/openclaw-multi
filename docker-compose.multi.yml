@@ -1,0 +1,262 @@
+version: '3.8'
+
+# OpenClaw 多实例 Docker Compose 配置
+# 每个实例完全独立，包含独立的配置、数据和端口
+
+services:
+  # ============================================
+  # 实例 1: 管家龙虾 (lobster-001)
+  # 角色: 管家 - 高效干练，简洁直接
+  # ============================================
+  openclaw-lobster-001:
+    container_name: openclaw-lobster-001
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    ports:
+      - "${LOBSTER_001_PORT:-18001}:18789"
+    volumes:
+      # 实例独立配置
+      - ./instances/lobster-001/config:/home/node/.openclaw
+      # 实例独立工作空间
+      - ./instances/lobster-001/workspace:/home/node/.openclaw/workspace
+      # 实例数据持久化
+      - ./instances/lobster-001/data:/home/node/.openclaw/data
+      # 共享扩展（可选）
+      - ./shared/extensions:/home/node/.openclaw/extensions:ro
+    environment:
+      # 实例标识
+      - OPENCLAW_INSTANCE_ID=lobster-001
+      - OPENCLAW_INSTANCE_NAME=${LOBSTER_001_NAME:-大管家}
+      - OPENCLAW_INSTANCE_ROLE=${LOBSTER_001_ROLE:-管家}
+      # 基础配置
+      - NODE_ENV=production
+      - OPENCLAW_CONFIG_DIR=/home/node/.openclaw
+      - OPENCLAW_WORKSPACE_DIR=/home/node/.openclaw/workspace
+      # API Keys（从 .env 读取）
+      - MOONSHOT_API_KEY=${LOBSTER_001_MOONSHOT_API_KEY:-}
+      - OPENAI_API_KEY=${LOBSTER_001_OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${LOBSTER_001_ANTHROPIC_API_KEY:-}
+      # Channel 配置
+      - FEISHU_APP_ID=${LOBSTER_001_FEISHU_APP_ID:-}
+      - FEISHU_APP_SECRET=${LOBSTER_001_FEISHU_APP_SECRET:-}
+      - TELEGRAM_BOT_TOKEN=${LOBSTER_001_TELEGRAM_BOT_TOKEN:-}
+      - DISCORD_BOT_TOKEN=${LOBSTER_001_DISCORD_BOT_TOKEN:-}
+      # 网关配置
+      - GATEWAY_BIND=lan
+      - GATEWAY_PORT=18789
+    networks:
+      - openclaw-lobster-001-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:18789/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  openclaw-cli-lobster-001:
+    container_name: openclaw-cli-lobster-001
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    network_mode: "service:openclaw-lobster-001"
+    volumes:
+      - ./instances/lobster-001/config:/home/node/.openclaw
+      - ./instances/lobster-001/workspace:/home/node/.openclaw/workspace
+      - ./instances/lobster-001/data:/home/node/.openclaw/data
+    environment:
+      - OPENCLAW_INSTANCE_ID=lobster-001
+      - NODE_ENV=production
+    profiles:
+      - cli-001
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+
+  # ============================================
+  # 实例 2: 助手龙虾 (lobster-002)
+  # 角色: 助手 - 友好热情，耐心细致
+  # ============================================
+  openclaw-lobster-002:
+    container_name: openclaw-lobster-002
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    ports:
+      - "${LOBSTER_002_PORT:-18002}:18789"
+    volumes:
+      - ./instances/lobster-002/config:/home/node/.openclaw
+      - ./instances/lobster-002/workspace:/home/node/.openclaw/workspace
+      - ./instances/lobster-002/data:/home/node/.openclaw/data
+      - ./shared/extensions:/home/node/.openclaw/extensions:ro
+    environment:
+      - OPENCLAW_INSTANCE_ID=lobster-002
+      - OPENCLAW_INSTANCE_NAME=${LOBSTER_002_NAME:-小助手}
+      - OPENCLAW_INSTANCE_ROLE=${LOBSTER_002_ROLE:-助手}
+      - NODE_ENV=production
+      - OPENCLAW_CONFIG_DIR=/home/node/.openclaw
+      - OPENCLAW_WORKSPACE_DIR=/home/node/.openclaw/workspace
+      - MOONSHOT_API_KEY=${LOBSTER_002_MOONSHOT_API_KEY:-}
+      - OPENAI_API_KEY=${LOBSTER_002_OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${LOBSTER_002_ANTHROPIC_API_KEY:-}
+      - FEISHU_APP_ID=${LOBSTER_002_FEISHU_APP_ID:-}
+      - FEISHU_APP_SECRET=${LOBSTER_002_FEISHU_APP_SECRET:-}
+      - TELEGRAM_BOT_TOKEN=${LOBSTER_002_TELEGRAM_BOT_TOKEN:-}
+      - DISCORD_BOT_TOKEN=${LOBSTER_002_DISCORD_BOT_TOKEN:-}
+      - GATEWAY_BIND=lan
+      - GATEWAY_PORT=18789
+    networks:
+      - openclaw-lobster-002-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:18789/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  openclaw-cli-lobster-002:
+    container_name: openclaw-cli-lobster-002
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    network_mode: "service:openclaw-lobster-002"
+    volumes:
+      - ./instances/lobster-002/config:/home/node/.openclaw
+      - ./instances/lobster-002/workspace:/home/node/.openclaw/workspace
+      - ./instances/lobster-002/data:/home/node/.openclaw/data
+    environment:
+      - OPENCLAW_INSTANCE_ID=lobster-002
+      - NODE_ENV=production
+    profiles:
+      - cli-002
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+
+  # ============================================
+  # 实例 3: 专家龙虾 (lobster-003)
+  # 角色: 专家 - 严谨专业，深入浅出
+  # ============================================
+  openclaw-lobster-003:
+    container_name: openclaw-lobster-003
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    ports:
+      - "${LOBSTER_003_PORT:-18003}:18789"
+    volumes:
+      - ./instances/lobster-003/config:/home/node/.openclaw
+      - ./instances/lobster-003/workspace:/home/node/.openclaw/workspace
+      - ./instances/lobster-003/data:/home/node/.openclaw/data
+      - ./shared/extensions:/home/node/.openclaw/extensions:ro
+    environment:
+      - OPENCLAW_INSTANCE_ID=lobster-003
+      - OPENCLAW_INSTANCE_NAME=${LOBSTER_003_NAME:-技术专家}
+      - OPENCLAW_INSTANCE_ROLE=${LOBSTER_003_ROLE:-专家}
+      - NODE_ENV=production
+      - OPENCLAW_CONFIG_DIR=/home/node/.openclaw
+      - OPENCLAW_WORKSPACE_DIR=/home/node/.openclaw/workspace
+      - MOONSHOT_API_KEY=${LOBSTER_003_MOONSHOT_API_KEY:-}
+      - OPENAI_API_KEY=${LOBSTER_003_OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${LOBSTER_003_ANTHROPIC_API_KEY:-}
+      - FEISHU_APP_ID=${LOBSTER_003_FEISHU_APP_ID:-}
+      - FEISHU_APP_SECRET=${LOBSTER_003_FEISHU_APP_SECRET:-}
+      - TELEGRAM_BOT_TOKEN=${LOBSTER_003_TELEGRAM_BOT_TOKEN:-}
+      - DISCORD_BOT_TOKEN=${LOBSTER_003_DISCORD_BOT_TOKEN:-}
+      - GATEWAY_BIND=lan
+      - GATEWAY_PORT=18789
+    networks:
+      - openclaw-lobster-003-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:18789/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  openclaw-cli-lobster-003:
+    container_name: openclaw-cli-lobster-003
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    network_mode: "service:openclaw-lobster-003"
+    volumes:
+      - ./instances/lobster-003/config:/home/node/.openclaw
+      - ./instances/lobster-003/workspace:/home/node/.openclaw/workspace
+      - ./instances/lobster-003/data:/home/node/.openclaw/data
+    environment:
+      - OPENCLAW_INSTANCE_ID=lobster-003
+      - NODE_ENV=production
+    profiles:
+      - cli-003
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+
+  # ============================================
+  # 实例 4: 备用龙虾 (lobster-004)
+  # 可按需启用
+  # ============================================
+  openclaw-lobster-004:
+    container_name: openclaw-lobster-004
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    ports:
+      - "${LOBSTER_004_PORT:-18004}:18789"
+    volumes:
+      - ./instances/lobster-004/config:/home/node/.openclaw
+      - ./instances/lobster-004/workspace:/home/node/.openclaw/workspace
+      - ./instances/lobster-004/data:/home/node/.openclaw/data
+      - ./shared/extensions:/home/node/.openclaw/extensions:ro
+    environment:
+      - OPENCLAW_INSTANCE_ID=lobster-004
+      - OPENCLAW_INSTANCE_NAME=${LOBSTER_004_NAME:-备用龙虾}
+      - OPENCLAW_INSTANCE_ROLE=${LOBSTER_004_ROLE:-通用}
+      - NODE_ENV=production
+      - OPENCLAW_CONFIG_DIR=/home/node/.openclaw
+      - OPENCLAW_WORKSPACE_DIR=/home/node/.openclaw/workspace
+      - MOONSHOT_API_KEY=${LOBSTER_004_MOONSHOT_API_KEY:-}
+      - OPENAI_API_KEY=${LOBSTER_004_OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${LOBSTER_004_ANTHROPIC_API_KEY:-}
+      - FEISHU_APP_ID=${LOBSTER_004_FEISHU_APP_ID:-}
+      - FEISHU_APP_SECRET=${LOBSTER_004_FEISHU_APP_SECRET:-}
+      - TELEGRAM_BOT_TOKEN=${LOBSTER_004_TELEGRAM_BOT_TOKEN:-}
+      - DISCORD_BOT_TOKEN=${LOBSTER_004_DISCORD_BOT_TOKEN:-}
+      - GATEWAY_BIND=lan
+      - GATEWAY_PORT=18789
+    networks:
+      - openclaw-lobster-004-net
+    restart: unless-stopped
+    profiles:
+      - lobster-004
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:18789/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  openclaw-cli-lobster-004:
+    container_name: openclaw-cli-lobster-004
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    network_mode: "service:openclaw-lobster-004"
+    volumes:
+      - ./instances/lobster-004/config:/home/node/.openclaw
+      - ./instances/lobster-004/workspace:/home/node/.openclaw/workspace
+      - ./instances/lobster-004/data:/home/node/.openclaw/data
+    environment:
+      - OPENCLAW_INSTANCE_ID=lobster-004
+      - NODE_ENV=production
+    profiles:
+      - cli-004
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+
+networks:
+  openclaw-lobster-001-net:
+    driver: bridge
+  openclaw-lobster-002-net:
+    driver: bridge
+  openclaw-lobster-003-net:
+    driver: bridge
+  openclaw-lobster-004-net:
+    driver: bridge

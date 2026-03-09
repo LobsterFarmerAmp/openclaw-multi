@@ -1,0 +1,32 @@
+{
+  "name": "openclaw-multi",
+  "version": "1.0.0",
+  "description": "Multi-instance Docker deployment for OpenClaw",
+  "main": "docker-compose.multi.yml",
+  "scripts": {
+    "instance:create": "./scripts/generate-instance.sh",
+    "instance:manage": "./scripts/manage-instances.sh",
+    "start": "docker compose -f docker-compose.multi.yml up -d",
+    "stop": "docker compose -f docker-compose.multi.yml stop",
+    "restart": "docker compose -f docker-compose.multi.yml restart",
+    "logs": "docker compose -f docker-compose.multi.yml logs -f",
+    "status": "./scripts/manage-instances.sh status-all"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/openclaw-multi.git"
+  },
+  "keywords": [
+    "openclaw",
+    "docker",
+    "multi-instance",
+    "ai-assistant",
+    "deployment"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/openclaw-multi/issues"
+  },
+  "homepage": "https://github.com/yourusername/openclaw-multi#readme"
+}
