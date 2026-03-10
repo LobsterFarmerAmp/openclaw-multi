@@ -1,7 +1,9 @@
 #!/bin/bash
 #
-# OpenClaw 实例生成脚本 v2.1
+# OpenClaw 实例生成脚本 v2.3
 # 完全自定义配置 - 从 YAML 配置文件读取所有 personality 相关字段
+# 新增: Skill 自动复制功能
+# 新增: 独立 envs/ 目录管理密钥，使用通用命名
 #
 
 set -e
@@ -10,6 +12,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIGS_DIR="$BASE_DIR/configs"
 INSTANCES_DIR="$BASE_DIR/instances"
+ENVS_DIR="$BASE_DIR/envs"
+
+# 主 workspace skills 目录 (相对于脚本位置的父目录)
+# 支持两种路径: 1) 与 openclaw-multi 同级的 skills 目录 2) 用户指定的路径
+MASTER_SKILLS_DIR="${MASTER_SKILLS_DIR:-$BASE_DIR/../skills}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -26,7 +33,7 @@ print_header() { echo -e "${CYAN}$1${NC}"; }
 
 show_help() {
     cat << EOF
-OpenClaw 实例生成脚本 v2.1
+OpenClaw 实例生成脚本 v2.3
 
 用法: $0 [选项]
 
@@ -36,12 +43,22 @@ OpenClaw 实例生成脚本 v2.1
   --force          强制重新生成 (覆盖配置，保留数据)
   --dry-run        预览操作，不实际生成
   --compose        生成 docker-compose.yml
+  --skills-dir <路径>  指定主 workspace skills 目录 (默认: ../skills)
   --help           显示帮助
+
+环境变量:
+  MASTER_SKILLS_DIR    主 workspace skills 目录路径
 
 示例:
   $0                           # 生成所有实例
   $0 --config custom.yaml      # 生成指定配置
   $0 --all --force --compose   # 强制重新生成并更新 compose
+  $0 --skills-dir /path/to/skills  # 指定 skills 目录
+
+密钥管理:
+  每个实例的密钥放在 envs/<instance-id>.env 文件中
+  使用通用命名 (如 MOONSHOT_API_KEY, FEISHU_APP_ID)
+  部署时自动挂载为容器环境变量
 
 EOF
 }
@@ -95,6 +112,51 @@ create_directories() {
     local instance_dir="$1"
     mkdir -p "$instance_dir"/{config,workspace,data/{sessions,credentials,logs},memory}
     mkdir -p "$instance_dir/workspace/skills"
+}
+
+# 复制 skills 到实例
+# 逻辑: 检查主 workspace 是否有指定的 skill，有则复制，没有则跳过
+copy_skills() {
+    local instance_dir="$1"
+    local config_file="$2"
+    local instance_id=$(yq eval '.id' "$config_file")
+    
+    # 读取 skills 列表
+    local skills=$(yq eval '.skills[]' "$config_file" 2>/dev/null)
+    
+    if [[ -z "$skills" || "$skills" == "null" ]]; then
+        print_info "实例 $instance_id: 未配置 skills"
+        return 0
+    fi
+    
+    # 检查主 skills 目录是否存在
+    if [[ ! -d "$MASTER_SKILLS_DIR" ]]; then
+        print_warning "主 skills 目录不存在: $MASTER_SKILLS_DIR"
+        print_info "实例 $instance_id: 跳过 skills 复制"
+        return 0
+    fi
+    
+    print_info "实例 $instance_id: 处理 skills..."
+    
+    # 解析并复制每个 skill
+    echo "$skills" | while IFS= read -r skill_name; do
+        [[ -z "$skill_name" ]] && continue
+        
+        local source_skill="$MASTER_SKILLS_DIR/$skill_name"
+        local target_skill="$instance_dir/workspace/skills/$skill_name"
+        
+        if [[ -d "$source_skill" ]]; then
+            # 复制 skill 目录
+            if [[ "$DRY_RUN" == "true" ]]; then
+                print_info "[DRY-RUN] 将复制 skill: $skill_name"
+            else
+                cp -r "$source_skill" "$target_skill"
+                print_success "  ✓ 已复制: $skill_name"
+            fi
+        else
+            print_warning "  ✗ 跳过 (不存在): $skill_name"
+        fi
+    done
 }
 
 generate_identity() {
@@ -595,6 +657,9 @@ generate_instance() {
     generate_heartbeat "$instance_dir"
     generate_instance_info "$instance_dir" "$config_file"
     
+    # 复制 skills (v2.2 新增)
+    copy_skills "$instance_dir" "$config_file"
+    
     print_success "实例 $id 生成完成"
 }
 
@@ -610,6 +675,7 @@ generate_compose() {
     cat > "$compose" << 'EOF'
 version: '3.8'
 # 由 generate-instances.sh 自动生成 - 不要手动编辑
+# v2.3: 使用 env_file 挂载密钥配置
 
 services:
 EOF
@@ -637,14 +703,11 @@ EOF
       - ./instances/${id}/config:/home/node/.openclaw
       - ./instances/${id}/workspace:/home/node/.openclaw/workspace
       - ./instances/${id}/data:/home/node/.openclaw/data
+    env_file:
+      - ./envs/${id}.env
     environment:
       - OPENCLAW_INSTANCE_ID=${id}
       - NODE_ENV=production
-      - MOONSHOT_API_KEY=\${${id^^}_MOONSHOT_API_KEY:-}
-      - FEISHU_APP_ID=\${${id^^}_FEISHU_APP_ID:-}
-      - FEISHU_APP_SECRET=\${${id^^}_FEISHU_APP_SECRET:-}
-      - TELEGRAM_BOT_TOKEN=\${${id^^}_TELEGRAM_BOT_TOKEN:-}
-      - DISCORD_BOT_TOKEN=\${${id^^}_DISCORD_BOT_TOKEN:-}
     networks:
       - openclaw-${id}-net
     restart: unless-stopped
@@ -658,6 +721,8 @@ ${profile_line}
       - ./instances/${id}/config:/home/node/.openclaw
       - ./instances/${id}/workspace:/home/node/.openclaw/workspace
       - ./instances/${id}/data:/home/node/.openclaw/data
+    env_file:
+      - ./envs/${id}.env
     environment:
       - OPENCLAW_INSTANCE_ID=${id}
       - NODE_ENV=production
@@ -692,6 +757,7 @@ while [[ $# -gt 0 ]]; do
         --force) FORCE=true; shift ;;
         --dry-run) DRY_RUN=true; shift ;;
         --compose) GENERATE_COMPOSE=true; shift ;;
+        --skills-dir) MASTER_SKILLS_DIR="$2"; shift 2 ;;
         --help) show_help; exit 0 ;;
         *) print_error "未知选项: $1"; show_help; exit 1 ;;
     esac
@@ -699,8 +765,13 @@ done
 
 check_dependencies
 
-print_info "OpenClaw 实例生成脚本 v2.1"
+# 创建 envs 目录
+mkdir -p "$ENVS_DIR"
+
+print_info "OpenClaw 实例生成脚本 v2.3"
 print_info "=========================="
+print_info "主 skills 目录: $MASTER_SKILLS_DIR"
+print_info "密钥配置目录: $ENVS_DIR"
 
 if [[ -n "$CONFIG_FILE" ]]; then
     generate_instance "$CONFIG_FILE"
@@ -715,3 +786,7 @@ if [[ "$GENERATE_COMPOSE" == "true" ]] || [[ -z "$CONFIG_FILE" ]]; then
 fi
 
 print_success "完成!"
+print_info ""
+print_info "下一步:"
+print_info "1. 在 envs/ 目录下为每个实例创建 .env 文件"
+print_info "2. 运行: docker compose -f docker-compose.multi.yml up -d"

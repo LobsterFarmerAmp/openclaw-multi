@@ -41,4 +41,9 @@ channels:
   telegram:
     enabled: true
 
+# Skill 配置 - 从主 workspace 复制指定的 skills
+# 如果主 workspace 中不存在该 skill，则跳过
+skills:
+  - tavily-search
+
 autostart: true

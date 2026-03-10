@@ -1,7 +1,7 @@
 {
   "name": "openclaw-multi",
-  "version": "1.0.0",
-  "description": "Multi-instance Docker deployment for OpenClaw",
+  "version": "2.3.0",
+  "description": "Multi-instance Docker deployment for OpenClaw with Skill inheritance",
   "main": "docker-compose.multi.yml",
   "scripts": {
     "instance:create": "./scripts/generate-instance.sh",

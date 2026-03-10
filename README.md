@@ -5,6 +5,22 @@
 
 在一台电脑上运行多个独立的 OpenClaw 实例，每个实例拥有独立的性格、记忆、技能和配置。
 
+## ✨ 最新特性 (v2.3)
+
+**独立密钥管理** - 每个实例有独立的 env 文件，使用通用命名
+
+- 🔐 `envs/<instance>.env` 单独管理每个实例的密钥
+- 📝 通用命名（如 `MOONSHOT_API_KEY`），不加实例ID前缀
+- 🚀 docker-compose 自动挂载为容器环境变量
+- 🛡️ envs/*.env 已加入 .gitignore，保护密钥安全
+
+**Skill 自动继承** - 实例可自动复制主 workspace 中的 skills
+
+- 🧠 配置文件中指定需要的 skills 列表
+- 📁 生成时自动从主 workspace 复制到实例
+- ⚠️ 主 workspace 中不存在的 skill 会自动跳过
+- 🎯 每个实例可以有独立的 skill 组合
+
 ## 🎯 新架构特性
 
 **配置文件驱动** - 每种配置独立成 YAML 文件，灵活自定义，不再硬编码
@@ -54,16 +70,24 @@ autostart: true
 
 ### 4. 配置 API Keys
 
-编辑全局 `.env` 文件：
+为每个实例编辑 `envs/<instance-id>.env` 文件：
 
 ```bash
-# 基础配置
-OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:latest
-
-# 实例特定配置
-MY_BOT_MOONSHOT_API_KEY=your_key_here
-MY_BOT_TELEGRAM_BOT_TOKEN=your_token_here
+# envs/lobster-001.env - 大管家 (飞书)
+MOONSHOT_API_KEY=sk-xxx
+FEISHU_APP_ID=cli-xxx
+FEISHU_APP_SECRET=xxx
+TAVILY_API_KEY=tvly-xxx
 ```
+
+使用**通用命名**（不加实例ID前缀）：
+- `MOONSHOT_API_KEY` - AI模型
+- `FEISHU_APP_ID` / `FEISHU_APP_SECRET` - 飞书
+- `TELEGRAM_BOT_TOKEN` - Telegram
+- `DISCORD_BOT_TOKEN` - Discord
+- `TAVILY_API_KEY` - Tavily搜索
+- `ANTHROPIC_API_KEY` - Claude Code
+- `GITHUB_TOKEN` - GitHub API
 
 ### 5. 启动服务
 
@@ -99,7 +123,7 @@ autostart: true        # 是否自动启动 (默认 true，false 需用 profile 
 
 ## 配置示例
 
-### 管家角色 (飞书)
+### 管家角色 (飞书) + Skills
 ```yaml
 # configs/butler.yaml
 id: butler
@@ -109,9 +133,15 @@ emoji: "🎯"
 port: 18001
 channels:
   - feishu
+
+# Skill 配置 - 从主 workspace 复制指定的 skills
+# 如果主 workspace 中不存在该 skill，则跳过
+skills:
+  - github
+  - tavily-search
 ```
 
-### 技术专家 (Discord + Telegram)
+### 技术专家 (Discord + Telegram) + Skills
 ```yaml
 # configs/expert.yaml
 id: tech-expert
@@ -123,6 +153,11 @@ model: openai/gpt-5.1-codex
 channels:
   - discord
   - telegram
+
+skills:
+  - github
+  - code-with-claude
+  - tavily-search
 ```
 
 ### 自定义角色
@@ -137,6 +172,43 @@ personality: "温柔耐心，善于倾听，提供情感支持"
 voice: "温暖柔和，像朋友一样聊天"
 channels:
   - telegram
+```
+
+## Skill 配置说明
+
+实例可以自动继承主 workspace 中的 skills，实现技能复用。
+
+### 工作原理
+
+1. 在配置文件中通过 `skills` 字段指定需要的 skills 列表
+2. 生成实例时，脚本会检查主 workspace (`../skills/` 或 `--skills-dir` 指定路径)
+3. 存在的 skill 会被复制到实例的 `workspace/skills/` 目录
+4. 不存在的 skill 会被跳过并输出警告
+
+### 配置示例
+
+```yaml
+# configs/my-bot.yaml
+id: my-bot
+name: 我的助手
+port: 18099
+
+# 指定需要的 skills
+skills:
+  - github          # 会从 ../skills/github/ 复制
+  - tavily-search   # 会从 ../skills/tavily-search/ 复制
+  - custom-skill    # 如果不存在，会跳过并警告
+```
+
+### 指定 Skills 目录
+
+```bash
+# 使用环境变量
+export MASTER_SKILLS_DIR=/path/to/your/skills
+./scripts/generate-instances.sh --all --compose
+
+# 使用命令行参数
+./scripts/generate-instances.sh --all --compose --skills-dir /path/to/your/skills
 ```
 
 ## 管理命令
@@ -154,6 +226,9 @@ channels:
 # 预览操作
 ./scripts/generate-instances.sh --dry-run
 
+# 指定 skills 目录
+./scripts/generate-instances.sh --all --compose --skills-dir /path/to/skills
+
 # 管理运行中的实例
 ./scripts/manage-instances.sh status-all
 ./scripts/manage-instances.sh start butler
@@ -170,15 +245,19 @@ openclaw-multi/
 │   ├── lobster-001.yaml            # 管家配置
 │   ├── lobster-002.yaml            # 助手配置
 │   └── custom.yaml                 # 你的自定义配置
+├── envs/                           # 密钥配置文件 (每个实例一个)
+│   ├── README.md                   # 密钥配置说明
+│   ├── lobster-001.env             # 大管家密钥
+│   ├── lobster-002.env             # 小助手密钥
+│   └── ...
 ├── scripts/
-│   ├── generate-instances.sh       # 实例生成脚本 (v2)
+│   ├── generate-instances.sh       # 实例生成脚本 (v2.3)
 │   └── manage-instances.sh         # 实例管理脚本
 ├── instances/                      # 生成的实例数据 (自动生成)
 │   ├── butler/
 │   ├── expert/
 │   └── ...
 ├── docker-compose.multi.yml        # 自动生成的 compose 文件
-├── .env                            # 全局环境变量 (API Keys 等)
 └── README.md                       # 本文件
 ```
 
@@ -194,6 +273,8 @@ openclaw-multi/
 - ✅ 新增实例只需添加配置文件
 - ✅ 支持无限数量实例
 - ✅ docker-compose 自动生成
+- ✅ **独立密钥管理** - `envs/<instance>.env` 通用命名
+- ✅ **Skill 自动继承** - 从主 workspace 复制 skills
 
 ## 预定义角色
 

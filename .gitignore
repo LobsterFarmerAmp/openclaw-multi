@@ -1,0 +1,24 @@
+# 环境变量和密钥
+.env
+envs/*.env
+!envs/README.md
+
+# 实例数据（自动生成的内容）
+instances/
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

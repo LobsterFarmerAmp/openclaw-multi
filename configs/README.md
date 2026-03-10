@@ -89,6 +89,18 @@ channels:
     enabled: false
 
 # ============================================
+# Skill 配置（可选）
+# ============================================
+
+# 需要从主 workspace 复制的 skills 列表
+# 生成时会检查 ../skills/ 目录，存在的 skill 会被复制到实例
+# 不存在的 skill 会被跳过并输出警告
+skills:
+  - github          # 从 ../skills/github/ 复制
+  - tavily-search   # 从 ../skills/tavily-search/ 复制
+  - custom-skill    # 如果不存在则跳过
+
+# ============================================
 # 高级配置（可选）
 # ============================================
 
@@ -122,7 +134,7 @@ personality: 友好、乐于助人
 voice: 温和、耐心
 ```
 
-### 示例 2：完整配置
+### 示例 2：完整配置（含 Skills）
 ```yaml
 id: butler
 name: 大管家
@@ -160,6 +172,11 @@ model: moonshot/kimi-k2.5
 channels:
   feishu:
     enabled: true
+
+# Skill 配置 - 从主 workspace 复制
+skills:
+  - github
+  - tavily-search
 
 autostart: true
 ```
