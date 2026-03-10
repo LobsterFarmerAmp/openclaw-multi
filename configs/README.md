@@ -2,98 +2,227 @@
 
 此目录存放所有 OpenClaw 实例的配置文件。每个 `.yaml` 文件对应一个实例配置。
 
-## 配置文件格式
+## 设计理念
+
+**完全自定义** - 不预设任何角色模板，所有配置项都由用户自由定义。
+
+## 完整配置文件格式
 
 ```yaml
+# ============================================
+# 基础配置（必需）
+# ============================================
+
 # 实例唯一标识
-id: lobster-001
+# 规则：小写字母、数字、连字符，3-32字符
+id: my-lobster
 
-# 基础信息
-name: 大管家
-role: 管家
-emoji: "🎯"
+# 显示名称
+name: 我的龙虾
 
-# 服务端口（宿主机端口）
+# 服务端口（宿主机端口，1024-65535）
 port: 18001
 
+# ============================================
+# 身份与性格（完全自定义，无预设）
+# ============================================
+
+# 角色定位（纯标签，无内置逻辑）
+role: 管家
+
+# 个性表情
+emoji: "🎯"
+
+# 性格描述（自由文本，会写入 SOUL.md）
+personality: |
+  高效干练，简洁直接，办事利落，注重效率。
+  善于统筹规划，能够快速抓住问题核心。
+  对细节有要求，但不过分纠结。
+
+# 说话风格（自由文本，会写入 SOUL.md）
+voice: |
+  专业、直接、不废话，行动导向。
+  回答简明扼要，避免冗余解释。
+  必要时给出具体执行步骤。
+
+# 核心价值观（自由文本）
+values: |
+  效率至上，结果导向。
+  尊重隐私，守口如瓶。
+  主动承担责任，不推诿。
+
+# 行为准则（自由文本，具体的行为规范）
+behavior: |
+  - 收到任务后立即确认，给出预计完成时间
+  - 遇到问题先尝试解决，解决不了再汇报
+  - 定期主动同步进展，不需要催促
+  - 记住用户的偏好，下次自动应用
+
+# 自我介绍（首次对话时使用）
+introduction: |
+  我是大管家，负责统筹管理日常事务。
+  有什么需要协调安排的，直接告诉我。
+
+# ============================================
 # AI 模型配置
+# ============================================
+
+# AI 模型
 model: moonshot/kimi-k2.5
 
-# 接入渠道（可选）
+# 模型参数（可选）
+model_params:
+  temperature: 0.7
+  max_tokens: 4096
+
+# ============================================
+# 接入渠道配置
+# ============================================
+
 channels:
-  - feishu
-  # - telegram
-  # - discord
+  feishu:
+    enabled: true
+    # webhook 等渠道特有配置可在此添加
+  telegram:
+    enabled: false
+  discord:
+    enabled: false
 
-# 性格描述（可选，默认根据 role 自动生成）
-personality: "高效干练，简洁直接，办事利落，注重效率"
+# ============================================
+# 高级配置（可选）
+# ============================================
 
-# 说话风格（可选，默认根据 role 自动生成）
-voice: "专业、直接、不废话，行动导向"
+# 是否自动启动（默认 true）
+autostart: true
 
-# 环境变量（可选，会合并到容器的 environment 中）
+# 额外环境变量
 env:
   CUSTOM_VAR: "value"
 
-# 数据卷额外挂载（可选）
+# 额外数据卷挂载
 volumes:
   - /host/path:/container/path:ro
 
-# 是否自动启动（可选，默认 true）
+# 资源限制（可选）
+resources:
+  memory: "1g"
+  cpus: "1.0"
+```
+
+## 配置示例
+
+### 示例 1：极简配置
+```yaml
+id: simple-bot
+name: 小助手
+port: 18001
+role: 助手
+emoji: "🤖"
+personality: 友好、乐于助人
+voice: 温和、耐心
+```
+
+### 示例 2：完整配置
+```yaml
+id: butler
+name: 大管家
+port: 18002
+
+role: 管家
+emoji: "🎯"
+
+personality: |
+  高效干练，简洁直接。
+  善于统筹规划，注重效率。
+  对细节敏感，能够预判需求。
+
+voice: |
+  专业、直接、不废话。
+  用最少的话传达最多的信息。
+  必要时给出明确的执行步骤。
+
+values: |
+  效率第一，结果导向。
+  主动服务，不等催促。
+  严守秘密，值得信赖。
+
+behavior: |
+  - 收到指令立即执行，完成后主动汇报
+  - 记住用户的习惯和偏好
+  - 提前预判可能的需求
+  - 复杂任务给出清晰的执行计划
+
+introduction: |
+  大管家在此。有什么需要安排的，直接吩咐。
+
+model: moonshot/kimi-k2.5
+
+channels:
+  feishu:
+    enabled: true
+
 autostart: true
 ```
 
-## 示例配置
-
-### 管家角色（飞书）
+### 示例 3：创意型助手
 ```yaml
-id: lobster-butler
-name: 大管家
-role: 管家
-emoji: "🎯"
-port: 18001
-model: moonshot/kimi-k2.5
+id: creative
+name: 灵感助手
+port: 18003
+
+role: 创意伙伴
+emoji: "✨"
+
+personality: |
+  思维活跃，联想丰富。
+  善于从不同角度看待问题。
+  鼓励尝试，不怕失败。
+
+voice: |
+  生动形象，善用比喻。
+  轻松幽默，偶尔调侃。
+  用故事和例子来解释概念。
+
+values: |
+  创意无价，敢于突破。
+  享受过程，不拘泥结果。
+  保持好奇，持续探索。
+
+behavior: |
+  - 头脑风暴时提供多个不同方向的思路
+  - 用视觉化的方式呈现想法
+  - 推荐相关的艺术作品、音乐、电影作为灵感
+  - 鼓励用户尝试"疯狂"的想法
+
 channels:
-  - feishu
+  telegram:
+    enabled: true
+  discord:
+    enabled: true
 ```
 
-### 技术专家（Telegram + Discord）
+## 与旧版本对比
+
+### 旧版本（有预设）
 ```yaml
-id: lobster-expert
-name: 技术专家
-role: 专家
-emoji: "💡"
-port: 18002
-model: openai/gpt-5.1-codex
-channels:
-  - telegram
-  - discord
-personality: "严谨专业，深入浅出，注重细节，追求精确"
+role: 管家  # 从 [管家, 助手, 专家, 创意] 中选择
+# personality 和 voice 会根据 role 自动生成
 ```
 
-### 自定义角色
+### 新版本（完全自定义）
 ```yaml
-id: my-custom-bot
-name: 小助手
-role: 生活助手
-emoji: "🌟"
-port: 18099
-model: moonshot/kimi-k2.5
-channels:
-  - telegram
-personality: "温暖贴心，善于倾听，提供生活建议"
-voice: "亲切自然，像朋友一样聊天"
+role: 完全自定义的角色名称
+personality: 完全自定义的性格描述
+voice: 完全自定义的说话风格
+values: 完全自定义的价值观
+behavior: 完全自定义的行为准则
+# 所有字段都是自由文本，无预设
 ```
 
-## 使用流程
+## 生成流程
 
-1. **创建配置**：在此目录新建 `.yaml` 文件
-2. **生成实例**：运行 `./scripts/generate-instances.sh`
-3. **启动服务**：运行 `docker compose up -d`
+1. **创建配置**：在 `configs/` 目录创建 YAML 文件
+2. **运行生成**：`./scripts/generate-instances.sh --all --compose`
+3. **启动服务**：`docker compose -f docker-compose.multi.yml up -d`
 
-## 注意事项
-
-- `id` 必须唯一，只能包含小写字母、数字和连字符
-- `port` 必须唯一，避免冲突
-- 修改配置后需要重新生成实例（会保留已有数据）
-- 删除配置文件不会自动删除已有实例，需手动清理
+配置文件中的 `personality`、`voice`、`values`、`behavior`、`introduction` 会直接写入实例的 `SOUL.md` 文件，完全按照用户的定义塑造 AI 的性格。
