@@ -1,0 +1,10 @@
+# 专家角色 - Discord 专用
+id: lobster-003
+name: 技术专家
+role: 专家
+emoji: "💡"
+port: 18003
+model: moonshot/kimi-k2.5
+channels:
+  - discord
+autostart: false

@@ -1,0 +1,10 @@
+# 管家角色 - 飞书专用
+id: lobster-001
+name: 大管家
+role: 管家
+emoji: "🎯"
+port: 18001
+model: moonshot/kimi-k2.5
+channels:
+  - feishu
+autostart: true

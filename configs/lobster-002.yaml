@@ -1,0 +1,10 @@
+# 助手角色 - Telegram 专用
+id: lobster-002
+name: 小助手
+role: 助手
+emoji: "🤖"
+port: 18002
+model: moonshot/kimi-k2.5
+channels:
+  - telegram
+autostart: true
